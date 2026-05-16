@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="shortcut icon" href="fav_ico.png" type="image/x-icon">
+  <title>Gerador de Vales</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #eef1f5;
+      margin: 0;
+      padding: 10px;
+    }
+
+    /* ── Abas ── */
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+
+    .tab-btn {
+      padding: 10px 28px;
+      border: none;
+      border-radius: 8px 8px 0 0;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: bold;
+      background-color: #c8d0db;
+      color: #444;
+      transition: background-color 0.25s, color 0.25s;
+    }
+
+    .tab-btn.active {
+      background-color: #007bff;
+      color: white;
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    /* ── Painel de configuração ── */
+    .config {
+      background-color: white;
+      padding: 12px 14px;
+      border-radius: 0 10px 10px 10px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    label { font-weight: bold; font-size: 14px; }
+
+    input {
+      padding: 6px 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    button.action-btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #007bff;
+      color: white;
+      font-weight: bold;
+      font-size: 14px;
+      transition: background-color 0.3s;
+    }
+
+    button.action-btn:hover { background-color: #0056b3; }
+
+    /* ══════════════════════════════════════════
+       VALES IMBULIX
+    ══════════════════════════════════════════ */
+    #vales-imbulix.page {
+      width: 297mm;
+      height: 210mm;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 8px;
+      background: white;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    #vales-cava.page {
+      width: 210mm;
+      height: 297mm;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: repeat(4, 1fr);
+      gap: 6px;
+      background: white;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    /* Card Imbulix */
+    .card-imbulix {
+      border-radius: 8px;
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #fafafa;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      border: 1px solid #e0e0e0;
+    }
+
+    .card-imbulix .header img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+    }
+
+    .card-imbulix .content {
+      font-size: 13px;
+      color: #333;
+    }
+
+    .card-imbulix .content p { margin: 4px 0; }
+
+    .bold { font-weight: bold; }
+
+    .red { color: #d93025; font-weight: bold; }
+
+    .card-imbulix .ass {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 8px;
+    }
+
+    .card-imbulix .footer {
+      margin-top: 6px;
+      font-size: 10px;
+      color: #555;
+      border-top: 1px dashed #ccc;
+      padding-top: 4px;
+      text-align: center;
+    }
+
+    /* ══════════════════════════════════════════
+       VALES CAVA  (estilo AMLURB/CTR)
+    ══════════════════════════════════════════ */
+    .card-cava {
+      border: 1.5px solid #333;
+      border-radius: 6px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: #fff;
+      font-size: 12px;
+      color: #111;
+    }
+
+    .card-cava .cava-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #555;
+      padding-bottom: 6px;
+      margin-bottom: 6px;
+    }
+
+    .card-cava .cava-logo {
+      height: 32px;
+      width: auto;
+      max-width: 130px;
+      object-fit: contain;
+    }
+
+    .card-cava .cava-title {
+      flex: 1;
+      text-align: center;
+    }
+
+    .card-cava .cava-title h2 {
+      margin: 0 0 2px 0;
+      font-size: 15px;
+      font-weight: bold;
+      letter-spacing: 2px;
+    }
+
+    .card-cava .cava-title p {
+      margin: 0;
+      font-size: 11px;
+    }
+
+    .card-cava .cava-row {
+      margin: 3px 0;
+      line-height: 1.5;
+    }
+
+    .card-cava .cava-row span.label {
+      font-weight: bold;
+    }
+
+    .card-cava .cava-fields {
+      display: flex;
+      gap: 16px;
+      margin: 4px 0;
+      font-size: 11.5px;
+    }
+
+    .card-cava .cava-fields span { white-space: nowrap; }
+
+
+
+    #vales-landapp.page {
+      width: 297mm;
+      height: 210mm;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 8px;
+      background: white;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    @media (max-width: 768px) {
+      #vales-imbulix.page {
+        transform: scale(0.45);
+        transform-origin: top left;
+        width: 100%;
+        height: auto;
+      }
+      #vales-cava.page {
+        transform: scale(0.55);
+        transform-origin: top left;
+        width: 100%;
+        height: auto;
+      }
+      #vales-landapp.page {
+        transform: scale(0.45);
+        transform-origin: top left;
+        width: 100%;
+        height: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ── ABAS ── -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="mudarAba('imbulix', this)">🏭 Imbulix</button>
+    <button class="tab-btn" onclick="mudarAba('cava', this)">⛏️ Cava</button>
+    <button class="tab-btn" onclick="mudarAba('landapp', this)">🚛 LandApp</button>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PAINEL IMBULIX
+  ══════════════════════════════════════ -->
+  <div id="panel-imbulix" class="tab-panel active">
+    <div class="config">
+      <label>Endereço da obra:</label>
+      <input type="text" id="endereco-imbulix" placeholder="Insira o endereço">
+
+      <label>Tipo de material:</label>
+      <input type="text" id="material-imbulix" placeholder="Insira o material">
+
+      <button class="action-btn" onclick="gerarValesImbulix()">Gerar Vales</button>
+      <button class="action-btn" onclick="imprimirVales('vales-imbulix')">Imprimir Vales</button>
+    </div>
+
+    <div id="vales-imbulix" class="page"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PAINEL CAVA
+  ══════════════════════════════════════ -->
+  <div id="panel-cava" class="tab-panel">
+    <div class="config">
+      <label>Origem (obra):</label>
+      <input type="text" id="origem-cava" placeholder="Ex: Vivaz Connection Mooca">
+
+      <label>Endereço:</label>
+      <input type="text" id="endereco-cava" placeholder="Ex: Rua Taquari, 1195, Mooca - SP">
+
+      <button class="action-btn" onclick="gerarValesCava()">Gerar Vales</button>
+      <button class="action-btn" onclick="imprimirVales('vales-cava')">Imprimir Vales</button>
+    </div>
+
+    <div id="vales-cava" class="page"></div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PAINEL LANDAPP
+  ══════════════════════════════════════ -->
+  <div id="panel-landapp" class="tab-panel">
+    <div class="config">
+      <label>Endereço da obra:</label>
+      <input type="text" id="endereco-landapp" placeholder="Insira o endereço">
+
+      <label>Tipo de material:</label>
+      <input type="text" id="material-landapp" placeholder="Insira o material">
+
+      <button class="action-btn" onclick="gerarValesLandapp()">Gerar Vales</button>
+      <button class="action-btn" onclick="imprimirVales('vales-landapp')">Imprimir Vales</button>
+    </div>
+
+    <div id="vales-landapp" class="page"></div>
+  </div>
+
+<script>
+  /* ── Troca de abas ── */
+  function mudarAba(nome, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('panel-' + nome).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  /* ══════════════════════════════════════
+     GERAR VALES IMBULIX
+  ══════════════════════════════════════ */
+  function gerarValesImbulix() {
+    const endereco = document.getElementById('endereco-imbulix').value.trim();
+    const material = document.getElementById('material-imbulix').value.trim();
+
+    if (!endereco) {
+      alert('⚠️ Por favor, preencha o endereço da obra antes de gerar os vales.');
+      return;
+    }
+
+    const valesDiv = document.getElementById('vales-imbulix');
+    valesDiv.innerHTML = '';
+
+    for (let i = 0; i < 4; i++) {
+      const card = document.createElement('div');
+      card.className = 'card-imbulix';
+      card.innerHTML = `
+        <div class="header">
+          <img src="logoimbulix.png" alt="Logo Imbulix">
+        </div>
+        <div class="content">
+          <p><span class="bold">${endereco}</span></p>
+          <p>
+            <span class="bold">DATA:</span> ___/___/_____ &nbsp;&nbsp;
+            <span class="bold">PLACA:</span> ___________ &nbsp;&nbsp;
+            <span class="bold">CTR Nº:</span> _______________
+          </p>
+          <p><span class="bold">MATERIAL:</span> - <span class="red">${material || '___________________'}</span></p>
+          <div class="ass">
+            <span class="bold">ASS:</span>
+            <span style="flex:1; border-bottom:1px solid #999; display:inline-block; margin-left:4px;">&nbsp;</span>
+          </div>
+          <div class="footer">LandApp Technology</div>
+        </div>
+      `;
+      valesDiv.appendChild(card);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     GERAR VALES CAVA (AMLURB / CTR)
+  ══════════════════════════════════════ */
+  function gerarValesCava() {
+    const empresa   = 'LANDAPP TECHNOLOGY LTDA.';
+    const origem    = document.getElementById('origem-cava').value.trim();
+    const endereco  = document.getElementById('endereco-cava').value.trim();
+
+    if (!origem) {
+      alert('⚠️ Por favor, preencha a origem (obra) antes de gerar os vales.');
+      return;
+    }
+
+    const valesDiv = document.getElementById('vales-cava');
+    valesDiv.innerHTML = '';
+
+    for (let i = 0; i < 4; i++) {
+      const card = document.createElement('div');
+      card.className = 'card-cava';
+      card.innerHTML = `
+        <div class="cava-top">
+          <img src="logocava.png" alt="Logo LandApp" class="cava-logo">
+          <div class="cava-title">
+            <h2>AMLURB</h2>
+            <p>Solicitação de baixa de CTR</p>
+          </div>
+          <div style="width:120px;"></div>
+        </div>
+
+        <div class="cava-row">
+          <span class="label">Empresa:</span> ${empresa}
+          &nbsp;&nbsp;
+          <span class="label">Origem:</span> <strong>${origem}</strong>
+        </div>
+
+        <div class="cava-row">
+          ${endereco || 'Endereço: ________________________________________________'}
+        </div>
+
+        <div class="cava-fields">
+          <span><span class="label">Nº da CTR:</span> _________________</span>
+          <span><span class="label">Data:</span> ___/___/_____</span>
+          <span><span class="label">Placa do Caminhão:</span> ___________</span>
+        </div>
+      `;
+      valesDiv.appendChild(card);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     GERAR VALES LANDAPP
+  ══════════════════════════════════════ */
+  function gerarValesLandapp() {
+    const endereco = document.getElementById('endereco-landapp').value.trim();
+    const material = document.getElementById('material-landapp').value.trim();
+
+    if (!endereco) {
+      alert('⚠️ Por favor, preencha o endereço da obra antes de gerar os vales.');
+      return;
+    }
+
+    const valesDiv = document.getElementById('vales-landapp');
+    valesDiv.innerHTML = '';
+
+    for (let i = 0; i < 4; i++) {
+      const card = document.createElement('div');
+      card.className = 'card-imbulix';
+      card.innerHTML = `
+        <div class="header">
+          <img src="logolandapp2.png" alt="Logo LandApp">
+        </div>
+        <div class="content">
+          <p><span class="bold">${endereco}</span></p>
+          <p>
+            <span class="bold">DATA:</span> ___/___/_____ &nbsp;&nbsp;
+            <span class="bold">PLACA:</span> ___________ &nbsp;&nbsp;
+            <span class="bold">CTR Nº:</span> _______________
+          </p>
+          <p><span class="bold">MATERIAL:</span> - <span class="red">${material || '___________________'}</span></p>
+          <div class="ass">
+            <span class="bold">ASS:</span>
+            <span style="flex:1; border-bottom:1px solid #999; display:inline-block; margin-left:4px;">&nbsp;</span>
+          </div>
+          <div class="footer">LandApp Technology</div>
+        </div>
+      `;
+      valesDiv.appendChild(card);
+    }
+  }
+
+  /* ══════════════════════════════════════
+     IMPRIMIR (compartilhado)
+  ══════════════════════════════════════ */
+  function imprimirVales(elementId) {
+    const element = document.getElementById(elementId);
+    if (!element.innerHTML.trim()) {
+      alert('⚠️ Por favor, clique em "Gerar Vales" antes de imprimir.');
+      return;
+    }
+
+    const opt = {
+      margin: [2, 2, 2, 2],
+      filename: elementId === 'vales-imbulix' ? 'vales_imbulix.pdf' : elementId === 'vales-landapp' ? 'vales_landapp.pdf' : 'vales_cava.pdf',
+      image: { type: 'jpeg', quality: 1 },
+      html2canvas: { scale: 5, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: elementId === 'vales-cava' ? 'portrait' : 'landscape' }
+    };
+
+    html2pdf().set(opt).from(element).save();
+  }
+</script>
+
+</body>
+</html>
